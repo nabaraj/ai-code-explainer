@@ -106,7 +106,7 @@ types/
 
 1. Clone the repo
 
-git clone https://github.com/your-username/code-explainer.git  
+git clone https://github.com/nabaraj/ai-code-explainer
 cd code-explainer
 
 2. Install dependencies
