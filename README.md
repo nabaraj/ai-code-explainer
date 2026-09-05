@@ -57,15 +57,38 @@ Database:
 
 ---
 
-## Share feature
+## Share Feature
 
 Each explanation can be shared using a URL:
 
 /shared/{shortId}
 
-- Same input generates same hash
-- Prevents duplicate entries
-- Works across devices
+- shortId is generated from hash (first few characters)
+- Same input + same mode → same hash → same link
+- Prevents duplicate entries in DB
+- Works across devices without login
+- Data is fetched using shortId via API
+
+---
+
+## Edge Cases Handled
+
+- Empty input → blocked before API call
+- Non-code input → rejected using basic validation
+- Very large input → limited by character threshold
+- Duplicate requests → served from DB (no API call)
+- Streaming interruption → handled safely in UI
+- Missing sharedId → returns "No match found"
+
+---
+
+## Interview Questions (based on this project)
+
+1. How does hash-based caching reduce API cost?
+2. Why use streaming instead of waiting for full response?
+3. How would you improve code validation logic?
+4. What are the risks of using shortId instead of full hash?
+5. How would you scale this system for high traffic?
 
 ---
 
@@ -106,7 +129,7 @@ types/
 
 1. Clone the repo
 
-git clone https://github.com/nabaraj/ai-code-explainer
+git clone https://github.com/nabaraj/ai-code-explainer  
 cd code-explainer
 
 2. Install dependencies
