@@ -1,0 +1,16 @@
+.panel-container {
+  display: flex;
+  flex: 1;
+}
+.horizontal {
+  flex-direction: row;
+}
+.verticle {
+  flex-direction: column;
+}
+.divider {
+  /* border: 2px solid; */
+  width: 5px;
+  background-color: #333;
+  cursor: all-scroll;
+}

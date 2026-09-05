@@ -24,3 +24,92 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+.explain-out {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #27272a;
+}
+
+/* Headings */
+.explain-out h1,
+.explain-out h2,
+.explain-out h3 {
+  font-weight: 600;
+  margin-top: 1.2rem;
+  margin-bottom: 0.6rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 4px;
+  text-align: left;
+}
+
+.explain-out h1 {
+  font-size: 20px;
+}
+
+.explain-out h2 {
+  font-size: 18px;
+}
+
+.explain-out h3 {
+  font-size: 16px;
+}
+
+.explain-out p {
+  margin-bottom: 0.8rem;
+}
+
+.explain-out ul,
+.explain-out ol {
+  margin-bottom: 1rem;
+}
+
+.explain-out li {
+  margin-bottom: 4px;
+}
+
+.explain-out code {
+  background: #1b1b1b;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: Menlo, Monaco, monospace;
+  color: #c1ff72;
+}
+
+.explain-out pre {
+  background: #111;
+  color: #e4e4e7;
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.explain-out pre code {
+  background: transparent;
+  padding: 0;
+}
+
+/* Blockquote */
+.explain-out blockquote {
+  border-left: 3px solid #c1ff72;
+  padding-left: 10px;
+  color: #71717a;
+  margin: 10px 0;
+}
+
+/* Links */
+.explain-out a {
+  color: #22c55e;
+  text-decoration: underline;
+}
+
+/* Strong text */
+.explain-out strong {
+  font-weight: 600;
+}
+
+/* Scroll smooth */
+.explain-out {
+  overflow-y: auto;
+}

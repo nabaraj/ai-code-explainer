@@ -1,69 +1,224 @@
-import Image from "next/image";
+"use client";
+import { Editor } from "@monaco-editor/react";
+import { useRef, useState } from "react";
+import { Header } from "./components/header";
+import { OutputCard } from "./components/output-card";
+import { OutputMode } from "./types/type";
+import type { editor as MonacoEditor } from "monaco-editor";
+import { encodingForModel } from "js-tiktoken";
+import { isLikelyCode, normalize } from "./utils/utils";
+import { useRouter } from "next/navigation";
+
+const enc = encodingForModel("gpt-4o");
+const CHARACTER_LIMIT = 10000;
 
 export default function Home() {
+  let timeout: any;
+  const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
+  const [mode, setMode] = useState<OutputMode>("fast");
+  const [explainedCode, setExplainedCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorText, setErrorText] = useState("");
+  const [token, setToken] = useState("");
+  const router = useRouter();
+
+  function handleEditorDidMount(editor: MonacoEditor.IStandaloneCodeEditor) {
+    editorRef.current = editor;
+  }
+
+  const handleSubmit = async () => {
+    const codeContent = editorRef?.current?.getValue();
+
+    if (!codeContent) {
+      setErrorText("Please enter code");
+      return;
+    }
+
+    if (!isLikelyCode(codeContent)) {
+      setErrorText("Please enter valid code");
+      return;
+    }
+
+    const cleanedCode = normalize(codeContent);
+
+    if (cleanedCode.length > CHARACTER_LIMIT) {
+      setErrorText("Limit Exceeded");
+      return;
+    }
+    setErrorText("");
+    setLoading(true);
+    setExplainedCode("");
+
+    try {
+      const response = await fetch("/api/explain-code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ codeContent: cleanedCode, mode }),
+      });
+
+      if (!response.body) throw new Error("No response body");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      let done = false;
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+
+        const chunkValue = decoder.decode(value || new Uint8Array(), {
+          stream: true,
+        });
+
+        setExplainedCode((prev) => prev + chunkValue);
+      }
+    } catch (err: any) {
+      setErrorText(err?.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleShare = async () => {
+    const codeContent = editorRef?.current?.getValue();
+
+    if (!codeContent) {
+      setErrorText("Please enter code");
+      return;
+    }
+
+    if (!isLikelyCode(codeContent)) {
+      setErrorText("Please enter valid code");
+      return;
+    }
+
+    const cleanedCode = normalize(codeContent);
+
+    try {
+      const response = await fetch("/api/share-code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ codeContent: cleanedCode, mode, explainedCode }),
+      });
+      const result = await response.json();
+      router.push(`/shared/${result.id}`);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  const handleEditorChange = (value: string | undefined) => {
+    clearTimeout(timeout);
+
+    timeout = setTimeout(() => {
+      if (!value || value.length < 100) {
+        setToken("");
+        return;
+      }
+
+      setToken(enc.encode(value).length.toString());
+    }, 500);
+  };
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <>
+      <Header handleShare={handleShare} />
+      <div className="min-h-screen bg-zinc-50 dark:bg-black">
+        <main className="mx-auto px-6 py-6">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-zinc-800 dark:text-white">
+              Code Explainer
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div
+              className={`bg-white dark:bg-zinc-900 border ${errorText ? "border-red-500" : "border-zinc-300"} rounded-xl shadow-sm flex flex-col`}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
+                <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
+                  Code Input
+                </h3>
+                <button
+                  disabled={loading}
+                  onClick={handleSubmit}
+                  className="bg-[#1b1b1b] text-[#c1ff72] border border-[#2a2a2a] hover:bg-[#111111] disabled:opacity-50 text-xs px-3 py-1.5 rounded-md transition"
+                >
+                  {loading ? "Analyzing..." : "Explain"}
+                </button>
+              </div>
+              {errorText && (
+                <p className="text-xs text-red-500 px-4 pb-2">{errorText}</p>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col">
+                  <p className="text-xs text-zinc-500 mb-2 w-full px-4 pt-3 font-bold text-[#27272a]">
+                    Mode
+                  </p>
+                  <div className="flex rounded-md w-fit px-4">
+                    <button
+                      onClick={() => setMode("fast")}
+                      className={`px-3 py-1 text-xs rounded-md border ${
+                        mode === "fast"
+                          ? "bg-[#1b1b1b] text-[#c1ff72] border-[#2a2a2a]"
+                          : "text-zinc-500 border-transparent hover:border-zinc-300"
+                      }`}
+                    >
+                      Fast
+                    </button>
+
+                    <button
+                      onClick={() => setMode("detailed")}
+                      className={`px-3 py-1 text-xs rounded-md ${
+                        mode === "detailed"
+                          ? "bg-[#1b1b1b] text-[#c1ff72]"
+                          : "text-zinc-500"
+                      }`}
+                    >
+                      Detailed
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-col text-right">
+                  <p className="text-xs text-zinc-500 mb-2 w-full px-4 pt-3 font-bold text-[#27272a]">
+                    Token estimate
+                  </p>
+                  <span className="px-4 font-bold">{token}</span>
+                </div>
+              </div>
+              <div className="p-3">
+                <Editor
+                  height="70vh"
+                  language="typescript"
+                  defaultValue="// Paste your code here..."
+                  onMount={handleEditorDidMount}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    wordWrap: "on",
+                  }}
+                  beforeMount={(monaco) => {
+                    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions(
+                      {
+                        noSemanticValidation: true,
+                        noSyntaxValidation: true,
+                      },
+                    );
+                  }}
+                  onChange={handleEditorChange}
+                />
+              </div>
+            </div>
+            <OutputCard loading={loading} explainedCode={explainedCode} />
+          </div>
+
+          {/* Error */}
+          {errorText && (
+            <p className="mt-4 text-sm text-red-500">{errorText}</p>
+          )}
+        </main>
+      </div>
+    </>
   );
 }
