@@ -65,6 +65,7 @@ Questions must be code-specific, not generic.
 `;
 
 export async function POST(request: Request) {
+  await dbConnect();
   const body = await request.json();
   const { codeContent, mode } = body as RequestBody;
   await dbConnect();
