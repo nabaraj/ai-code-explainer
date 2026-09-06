@@ -191,7 +191,7 @@ export default function Home() {
                 <Editor
                   height="70vh"
                   language="typescript"
-                  defaultValue="// Paste your code here..."
+                  defaultValue="// Paste your typescript code here..."
                   onMount={handleEditorDidMount}
                   options={{
                     minimap: { enabled: false },
